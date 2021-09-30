@@ -1,12 +1,12 @@
 # CMMPyAna
 
-##Goals:
+## Goals:
   - perform metrology analysis of outcome of the CMM machine
   - Takes 2 arguments:
      - The dmi file use to program the machine
      - The output file obtained for a given measurement
 
-##Dependancies:
+## Dependancies:
   Tested on python3.6
   - numpy
   - scipy #optionnal
