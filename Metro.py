@@ -1,0 +1,132 @@
+import fitter
+import numpy as np
+
+##################################################################################
+#  Goal: compute angle and planarity of 3 planes of inserts 
+#  12 modules/ladder
+#  5-6 inserts/module
+#  3 planes /inserts
+#  3-6 points per plane
+#
+# To-do:
+#  - config file to choice input files
+#  - choose list of modules
+#  - choose granularity
+#  - create a debug option
+##################################################################################
+
+
+##################################################################################
+# extract a coordinate (distance to gabarit plane) from the result file - y coord
+#   return None if not found
+# resfilename: input file name
+# point: string indicating the formatted searched point
+##################################################################################
+def getMeasure(resfilename,point):
+        resfile = open(resfilename,encoding="ISO-8859-1")
+        content = resfile.read()
+        #modification of content due to missing space
+        content = content.replace("Xmoy","Xmo")
+        content = content.replace("Xmo","Xmo ")
+        content = content.replace("Zmoy.","Zmoy")
+        content = content.replace("Zmoy","Zmoy ")
+        lines = content.split('\n')
+        out = [lines[lines.index(line)+1] for line in lines if line.find(point)>0]
+        measure = None
+        if len(out)==1:
+            measure = float(out[0].split()[2])
+        return measure
+
+##################################################################################
+# extract coordinates of a point from the dmi files
+#   return an empty list if not found
+# dmifilename: input file name
+# point: string indicating the fomatted searched point
+##################################################################################
+def getCoordFromDmi(dmifilename,point):
+        dmifile = open(dmifilename,encoding="ISO-8859-1")
+        content = dmifile.read()
+        lines = content.split('\n')
+        out = [lines[lines.index(line)+3] for line in lines if (line.find(point)>0 and line.find("MEAS_POINT")>0)]
+        measures = []
+        if len(out)==1:
+            measures.append(float(out[0].split(',')[1]))
+            measures.append(float(out[0].split(',')[2]))
+            measures.append(float(out[0].split(',')[3]))
+        print(measures)
+        return measures
+
+# filenames 
+# NB: could be configured later one
+resfilename = "python_test.RES"
+dmifilename = "python_test.dmi"
+#coord = getCoordFromDmi(dmifilename,"PNTA02F2")
+#ymeas = getMeasure(resfilename,"PNTA02F2")
+#print(coord,ymeas)
+
+#letters used to define an insert on the module
+#letters=["A","B","C","D","E"]
+letters=["A","C","D","E"]
+
+#numbers used to define a module on the ladder
+#numbers=["01","02","03","04","05","06","07","08"]
+numbers=["02","04","08"]
+
+#position used to define a serie of point passing by a plane of the insert
+positions={"F":(5,"y"),"H":(6,"y"),"S":(3,"x"),"E":(3,"z")}
+
+# format of point
+point="PNT{letter}{number}{position}"
+# format of insert
+insert="{letter}{number}{plane}"
+
+# output files
+ofileInsert = open("reportInserts.txt","w")
+ofileModule = open("reportModule.txt","w")
+
+######################################
+# loops over all points of interest
+######################################
+for nb in numbers: #define a module
+    insertBary = [] #compute an observed geometrical barycenter per F-plane of inserts
+    for l in letters: #define an insert on the module
+        for position in positions: #define a plane on the insert
+            points=[]
+            for el in range(1,positions[position][0]+1):
+                 #p = point.format(letter="A",number="02",position="F"+str(el))
+                 p = point.format(letter=l,number=nb,position=position+str(el))
+                 print(p)
+                 #points.append(point.format(letter="A",number="01",position="F"+str(el)))
+                 coord = getCoordFromDmi(dmifilename,p)
+                 meas = getMeasure(resfilename,p)
+                 #print(p,coord,ymeas)
+                 if coord and meas: 
+                     if positions[position][1]=='x': points.append([meas,coord[1],coord[2]])
+                     if positions[position][1]=='y': points.append([coord[0],meas,coord[2]])
+                     if positions[position][1]=='z': points.append([coord[0],coord[1],meas])
+                 #points.append([coord[0],coord[2],ymeas])
+
+            print(points)
+
+            if len(points)>0:
+                display = False
+                if position=="F": 
+                    #display = True
+                    #points.append(fitter.Barycenter(points))
+                    insertBary.append(fitter.Barycenter(points))
+                #fitter.Fitter(points,p,insert.format(letter=l,number=nb,position=position),True, ofile)
+                axis = positions[position][1]
+                label = insert.format(letter=l,number=nb,plane=position)
+                print(label)
+                fitter.Fitter(points, label, axis, True, ofileInsert, display)
+                #fitter.Fitter(points,p,positions[position][1],True, ofile)
+                yval = np.array([p[1] for p in points])
+                print(yval.mean(), yval.std(),yval.max()-yval.min())
+
+    # Perform fit for all inserts in a module based on barycenters of measured points
+    print("here we are")
+    print(insertBary)
+    fitter.Fitter(insertBary, l+nb, 'z', True, ofileModule, False)
+
+
+
