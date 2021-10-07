@@ -137,7 +137,9 @@ def fitv2(data, plan, display, verbosity=0):
     #trial to get fit[0]x+fit[1]y+fit[2]=constant
     #fit[2]=-1
     param = fit[:]
-    param[2]=-1
+    ## Correction
+    #param[2]=-1
+    param[2]=-param[2]
     #norm = m.sqrt(fit[0]**2+fit[1]**2+fit[2]**2)
     norm = m.sqrt(param[0]**2+param[1]**2+param[2]**2)
     # the computation of the angle depends on the reference plane which is caracterized by its vector normal to it
