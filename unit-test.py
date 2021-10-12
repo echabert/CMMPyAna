@@ -81,7 +81,7 @@ def test_fitv2(npseudo = 10, option='z',plot = True):
             angles.append(angle)
             residuals.append(residual)
             #print(angle,residual)
-    print (angles)
+    #print (angles)
     #print(residuals)
 
     if plot:
@@ -101,6 +101,6 @@ def test_fitv2(npseudo = 10, option='z',plot = True):
 
 
 if __name__ == "__main__":
-    test_fitv2(100,'x',True)
-    test_fitv2(100,'y',True)
+    #test_fitv2(100,'x',True)
+    #test_fitv2(100,'y',True)
     test_fitv2(100,'z',True)
