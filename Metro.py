@@ -28,8 +28,10 @@ def getMeasure(resfilename,point):
         #modification of content due to missing space
         content = content.replace("Xmoy","Xmo")
         content = content.replace("Xmo","Xmo ")
-        content = content.replace("Zmoy.","Zmoy")
-        content = content.replace("Zmoy","Zmoy ")
+        content = content.replace("Zmoy.","Zmoy ")
+        # new modifications
+        content = content.replace("Ymoy.","Ymoy")
+        content = content.replace("Ymoy","Ymoy ")
         lines = content.split('\n')
         out = [lines[lines.index(line)+1] for line in lines if line.find(point)>0]
         measure = None
@@ -58,22 +60,34 @@ def getCoordFromDmi(dmifilename,point):
 
 # filenames 
 # NB: could be configured later one
-resfilename = "python_test.RES"
-dmifilename = "python_test.dmi"
+#resfilename = "python_test.RES"
+#dmifilename = "python_test.dmi"
+#resfilename = "Proto2/proto2-v3.RES"
+resfilename = "Proto2/proto2-v2.RES"
+dmifilename = "Proto2/proto2.dmi"
+
+
+#print(getCoordFromDmi(dmifilename,"E02F5"))
+
 #coord = getCoordFromDmi(dmifilename,"PNTA02F2")
 #ymeas = getMeasure(resfilename,"PNTA02F2")
 #print(coord,ymeas)
 
 #letters used to define an insert on the module
-#letters=["A","B","C","D","E"]
-letters=["A","C","D","E"]
+letters=["A","B","C","D","E"]
+#letters=["A","C","D","E"]
 
 #numbers used to define a module on the ladder
 #numbers=["01","02","03","04","05","06","07","08"]
-numbers=["02","04","08"]
+numbers=["01","02","03","04","05","06","07","08","09","10","11"]
+#pb with 04S and 06S, 08S, 10S
+#pb B02E
 
 #position used to define a serie of point passing by a plane of the insert
 positions={"F":(5,"y"),"H":(6,"y"),"S":(3,"x"),"E":(3,"z")}
+#positions={"H":(6,"y"),"S":(3,"x"),"E":(3,"z")}
+#positions={"S":(3,"x"),"H":(6,"y"),"E":(3,"z")}
+#positions={"F":(5,"y"),"H":(6,"y"),"S":(3,"x")}
 
 # format of point
 point="PNT{letter}{number}{position}"
@@ -81,8 +95,13 @@ point="PNT{letter}{number}{position}"
 insert="{letter}{number}{plane}"
 
 # output files
-ofileInsert = open("reportInserts.txt","w")
-ofileModule = open("reportModule.txt","w")
+ofileInsert = open("reportInserts.csv","w")
+ofileModule = open("reportModule.csv","w")
+
+ofileInsert.write("label,angle,planeity\n")
+ofileModule.write("label,angle,planeity\n")
+
+fitModule = True #True
 
 ######################################
 # loops over all points of interest
@@ -99,18 +118,19 @@ for nb in numbers: #define a module
                  #points.append(point.format(letter="A",number="01",position="F"+str(el)))
                  coord = getCoordFromDmi(dmifilename,p)
                  meas = getMeasure(resfilename,p)
-                 #print(p,coord,ymeas)
+                 print(p,coord,meas,positions[position][1])
                  if coord and meas: 
                      if positions[position][1]=='x': points.append([meas,coord[1],coord[2]])
                      if positions[position][1]=='y': points.append([coord[0],meas,coord[2]])
                      if positions[position][1]=='z': points.append([coord[0],coord[1],meas])
                  #points.append([coord[0],coord[2],ymeas])
 
-            print(points)
+            print("points",l,position,points)
 
             if len(points)>0:
                 display = False
-                if position=="F": 
+                if position=="F":
+                    print ("bary",l,position)
                     #display = True
                     #points.append(fitter.Barycenter(points))
                     insertBary.append(fitter.Barycenter(points))
@@ -118,7 +138,9 @@ for nb in numbers: #define a module
                 axis = positions[position][1]
                 label = insert.format(letter=l,number=nb,plane=position)
                 print(label)
-                fitter.Fitter(points, label, axis, True, ofileInsert, display)
+                #require at least 3 points to constrain a plane
+                if len(points)>3:
+                   fitter.Fitter(points, label, axis, True, ofileInsert, display)
                 #fitter.Fitter(points,p,positions[position][1],True, ofile)
                 yval = np.array([p[1] for p in points])
                 print(yval.mean(), yval.std(),yval.max()-yval.min())
@@ -126,7 +148,8 @@ for nb in numbers: #define a module
     # Perform fit for all inserts in a module based on barycenters of measured points
     print("here we are")
     print(insertBary)
-    fitter.Fitter(insertBary, l+nb, 'z', True, ofileModule, False)
+    if fitModule:
+        fitter.Fitter(insertBary, l+nb, 'z', True, ofileModule, False)
 
 
 
