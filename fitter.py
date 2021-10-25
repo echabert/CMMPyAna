@@ -5,6 +5,8 @@ import math as m
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
+# Fitting method: https://www.stat.purdue.edu/~boli/stat512/lectures/topic3.pdf
+
 
 ############################################
 # Compute the geometrical barycenter
@@ -91,12 +93,20 @@ def fitPlaneLTSQ(XYZ, verbosity = 0):
 # NB: validation ongoing
 #     still issues with the angle computation
 ################################################
-def fitv2(data, plan, display, verbosity=0):
+def fitv2(data, plan, display, verbosity=1):
     #retrieve coordinates from data
     xs = data[:, 0]
     ys = data[:, 1]
     zs = data[:, 2]
-    
+  
+    #test of scaling
+    #ys = [100*i for i in ys]
+
+    #print(len(xs))
+    #print(xs)
+    #print(ys)
+    #print(zs)
+
     # plot raw data
     if display:
         plt.figure()
@@ -106,6 +116,9 @@ def fitv2(data, plan, display, verbosity=0):
     # do fit
     tmp_A = []
     tmp_b = []
+
+    #temporary test
+    plan=='y'
     for i in range(len(xs)):
         #LAST CHANGES _ ERIC - TEST
         if plan=='x':
@@ -118,6 +131,7 @@ def fitv2(data, plan, display, verbosity=0):
             tmp_A.append([xs[i], ys[i], 1])
             tmp_b.append(zs[i])
     b = np.matrix(tmp_b).T
+    #b = np.matrix(tmp_b)
     A = np.matrix(tmp_A)
     """
     print(b)
@@ -126,14 +140,59 @@ def fitv2(data, plan, display, verbosity=0):
     print((A.T*A))
     print("done")
     """
+    """ 
+    #test A.T
+    tmp = A.T
+    diff = A - tmp.T
+    print("test of transposition")
+    print(diff)
+    tmp = (A.T * A)
+    diff = (A.T * A)*(A.T * A).I
+    print("test of inverse")
+    print(diff)
+    print((A.T * A).I)
+    print(A.T)
+    print(b)
+    """
     fit = (A.T * A).I * A.T * b
+    #print("fit")
+    #print(fit)
     errors = b - A * fit
     residual = np.linalg.norm(errors)
+    if verbosity>0: 
+        print("residus")
+        print("res: ",residual)
+        print(fit)
+
+    # plot plane
+    if display:
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        if verbosity>1: 
+            print(xlim)
+            print(ylim)
+        X,Y = np.meshgrid(np.arange(xlim[0], xlim[1]),
+                          np.arange(ylim[0], ylim[1],0.05))
+        if verbosity>1: 
+            print(X)
+        Z = np.zeros(X.shape)
+        for r in range(X.shape[0]):
+            for c in range(X.shape[1]):
+                Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
+        ax.plot_wireframe(X,Y,Z, color='k')
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        plt.show()
 
     #from https://stackoverflow.com/questions/1400213/3d-least-squares-plane
+    #print('here')
     if verbosity>0:
-        print("solution:")
-        print ("%f x + %f y + %f = z" % (fit[0], fit[1], fit[2]))
+        #print('there')
+        if verbosity>0:
+            print("solution:")
+            print ("%f x + %f y + %f = z" % (fit[0], fit[1], fit[2]))
     #trial to get fit[0]x+fit[1]y+fit[2]=constant
     #fit[2]=-1
     param = fit[:]
@@ -157,22 +216,6 @@ def fitv2(data, plan, display, verbosity=0):
     #if verbosity > 2: 
     #    print("Angles (radians): ", angles)
 
-    # plot plane
-    if display:
-        xlim = ax.get_xlim()
-        ylim = ax.get_ylim()
-        X,Y = np.meshgrid(np.arange(xlim[0], xlim[1]),
-                          np.arange(ylim[0], ylim[1]))
-        Z = np.zeros(X.shape)
-        for r in range(X.shape[0]):
-            for c in range(X.shape[1]):
-                Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
-        ax.plot_wireframe(X,Y,Z, color='k')
-
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-        plt.show()
 
     return angle, residual
 
@@ -185,9 +228,10 @@ def fitv2(data, plan, display, verbosity=0):
 #######################################################
 
 def Fitter(points, label, plan='z', report=False, ofile = None, display=False,verbosity=3):
-    print("##########################")
-    print("### Report for module",label)
-    print("##########################")
+    if verbosity>1:
+        print("##########################")
+        print("### Report for plan",label)
+        print("##########################")
 
     #data transformation
     data = np.array(points)
