@@ -11,3 +11,8 @@
   - numpy
   - scipy #optionnal
 
+## To-do:
+  - check list of available insert, points
+  - externalize the black list
+  - create functions in order to eventually write a GUI
+
