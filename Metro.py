@@ -34,7 +34,9 @@ def getMeasure(resfilename,point):
         content = content.replace("Ymoy.","Ymoy")
         content = content.replace("Ymoy","Ymoy ")
         lines = content.split('\n')
+        #print(point)
         out = [lines[lines.index(line)+1] for line in lines if line.find(point)>0]
+        #print("out",out)
         measure = None
         if len(out)==1:
             measure = float(out[0].split()[2])
@@ -46,16 +48,25 @@ def getMeasure(resfilename,point):
 # dmifilename: input file name
 # point: string indicating the fomatted searched point
 ##################################################################################
-def getCoordFromDmi(dmifilename,point):
+def getCoordFromDmi(dmifilename,point,isProto3=False):
         dmifile = open(dmifilename,encoding="ISO-8859-1")
         content = dmifile.read()
         lines = content.split('\n')
         out = [lines[lines.index(line)+3] for line in lines if (line.find(point)>0 and line.find("MEAS_POINT")>0)]
+        if isProto3:
+            out = [lines[lines.index(line)] for line in lines if (line.find(point)>0 and line.find("FEAT")>0)]
+        print(point)
+        print("out",out)
         measures = []
         if len(out)==1:
-            measures.append(float(out[0].split(',')[1]))
-            measures.append(float(out[0].split(',')[2]))
-            measures.append(float(out[0].split(',')[3]))
+            if isProto3:
+               measures.append(float(out[0].split(',')[2]))
+               measures.append(float(out[0].split(',')[3]))
+               measures.append(float(out[0].split(',')[4]))
+            else:
+               measures.append(float(out[0].split(',')[1]))
+               measures.append(float(out[0].split(',')[2]))
+               measures.append(float(out[0].split(',')[3]))
         #print(measures)
         return measures
 
@@ -66,9 +77,12 @@ def getCoordFromDmi(dmifilename,point):
 #resfilename = "Proto2/proto2-v3.RES"
 #resfilename = "Proto2/proto2-v2.RES"
 #dmifilename = "Proto2/proto2.dmi"
-resfilename = "Proto2/proto2-v4.res"
-dmifilename = "Proto2/proto2-v4.dmi"
+#resfilename = "Proto2/proto2-v4.res"
+#dmifilename = "Proto2/proto2-v4.dmi"
+resfilename = "Proto3/proto3-corr.res"
+dmifilename = "Proto3/proto3-corr.dmi"
 
+isProto3 = True
 
 #print(getCoordFromDmi(dmifilename,"E02F5"))
 
@@ -78,46 +92,53 @@ dmifilename = "Proto2/proto2-v4.dmi"
 
 #letters used to define an insert on the module
 #letters=["A","B","C","D","E"]
-letters=["A","B","C","D","E"]
+#letters=["A","B","C","D","E"]
+#letters=["A","B","C","D"]
+letters=["A","C","D","F"]
 #letters=["A","C","D","E"]
 
 #numbers used to define a module on the ladder
-numbers=["02","04","06","08","10"]
-#numbers=["01","02","03","04","05","06","07","08","09","10","11"]
+#numbers=["02","04","06","08","10","12"]
+#numbers=["01","03","05","05","09","11"]
+numbers=["01","02","03","04","05","06","07","08","09","10","11","12"]
 #pb with 04S and 06S, 08S, 10S
 #pb B02E
 
 #position used to define a serie of point passing by a plane of the insert
-positions={"F":(5,"y"),"H":(6,"y"),"S":(3,"x"),"E":(3,"z")}
+#positions={"F":(5,"y"),"H":(6,"y"),"S":(3,"x"),"E":(3,"z")}
 #positions={"F":(5,"y"),"H":(6,"y")}
+positions={"F":(5,"y")}
 #positions={"F":(5,"y"),"H":(6,"y")}
 #positions={"H":(6,"y"),"S":(3,"x"),"E":(3,"z")}
 #positions={"S":(3,"x"),"H":(6,"y"),"E":(3,"z")}
 #positions={"F":(5,"y"),"H":(6,"y"),"S":(3,"x")}
 
-excluded = """
-A03F5
-A05F1
-A05F5
-B03F2
-B03F3
-B03H2
-B03H3
-C01F2
-C03F1
-C05F1
-E03H2
-E03H3
-E03F1
-E03F2
-E03F3
-E03F4
-E03F5
-"""
+excluded = """ """
+#
+#A03F5
+#A05F1
+#A05F5
+#B03F2
+#B03F3
+#B03H2
+#B03H3
+#C01F2
+#C03F1
+#C05F1
+#E03H2
+#E03H3
+#E03F1
+#E03F2
+#E03F3
+#E03F4
+#E03F5
+#*/
 excluded = ["PNT"+i for i in excluded.split()]
 
 # format of point
 point="PNT{letter}{number}{position}"
+if isProto3:
+   point="{letter}{number}{position}"
 # format of insert
 insert="{letter}{number}{plane}"
 
@@ -132,7 +153,7 @@ ofilePoints.write("letter,module,face,x,y,z\n")
 
 
 fitModule = True #True
-verbosity = 1
+verbosity = 3
 
 ######################################
 # loops over all points of interest
@@ -150,8 +171,10 @@ for nb in numbers: #define a module
                      continue
                  if verbosity>3: print("p = ",p)
                  #points.append(point.format(letter="A",number="01",position="F"+str(el)))
-                 coord = getCoordFromDmi(dmifilename,p)
+                 coord = getCoordFromDmi(dmifilename,p,isProto3)
                  meas = getMeasure(resfilename,p)
+                 print(coord)
+                 print(meas)
                  if verbosity>3: print(p,coord,meas,positions[position][1])
                  if coord and meas: 
                      if positions[position][1]=='x': points.append([meas,coord[1],coord[2]])
@@ -168,7 +191,7 @@ for nb in numbers: #define a module
 
             if len(points)>0:
                 display = False
-                if position=="H":
+                if (position=="H" and not isProto3) or (position=="F" and isProto3):
                     if verbosity>2: print ("bary",l,position)
                     #display = True
                     #points.append(fitter.Barycenter(points))
